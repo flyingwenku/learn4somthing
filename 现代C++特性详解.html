@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>现代 C++ 特性详解：用 C 语言视角重新理解</title>
+<style>
+:root{
+  --bg:#0f1419; --bg2:#161d26; --panel:#1b2430; --panel2:#232f3e;
+  --line:#2d3b4d; --txt:#d7e2ec; --txt2:#9fb0c0; --txt3:#6f8193;
+  --acc:#5ec2f3; --acc2:#7ee787; --warn:#ffa657; --purple:#d2a8ff;
+  --code-bg:#0b0f14; --kw:#ff7b72; --str:#a5d6ff; --num:#79c0ff; --cmt:#8b949e;
+  --sel:#264f78;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","WenQuanYi Micro Hei",sans-serif;
+  background:var(--bg);color:var(--txt);line-height:1.75;font-size:16px;
+}
+/* ---------- 布局 ---------- */
+#layout{display:flex;min-height:100vh}
+/* ---------- 侧边栏 ---------- */
+#sidebar{
+  width:300px;flex:0 0 300px;background:var(--bg2);border-right:1px solid var(--line);
+  position:sticky;top:0;height:100vh;overflow-y:auto;padding:22px 0 40px;
+}
+#sidebar .brand{padding:0 20px 16px;border-bottom:1px solid var(--line);margin-bottom:12px}
+#sidebar .brand h1{font-size:16px;color:var(--acc);letter-spacing:.5px}
+#sidebar .brand p{font-size:12px;color:var(--txt3);margin-top:6px;line-height:1.5}
+#sidebar .grp{font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;padding:14px 20px 6px}
+#sidebar a{
+  display:block;padding:7px 20px 7px 24px;color:var(--txt2);text-decoration:none;
+  font-size:14px;border-left:2px solid transparent;transition:.15s;
+}
+#sidebar a:hover{color:var(--txt);background:var(--panel)}
+#sidebar a.active{color:var(--acc);border-left-color:var(--acc);background:var(--panel)}
+#sidebar .sub{padding-left:38px;font-size:13px;color:var(--txt3)}
+#sidebar::-webkit-scrollbar{width:6px}
+#sidebar::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+/* ---------- 主内容 ---------- */
+main{flex:1;min-width:0;padding:48px 56px 120px;max-width:960px}
+h2{
+  font-size:26px;margin:64px 0 8px;padding-top:16px;color:#fff;
+  border-bottom:1px solid var(--line);padding-bottom:12px;letter-spacing:.5px;
+}
+h2:first-child,h2.first-in-main{margin-top:0}
+h3{font-size:19px;margin:34px 0 12px;color:var(--acc)}
+h4{font-size:16px;margin:22px 0 8px;color:var(--acc2)}
+p{margin:12px 0}
+ul,ol{margin:12px 0 12px 26px}
+li{margin:6px 0}
+strong{color:#fff}
+code{
+  font-family:"SF Mono",Menlo,Consolas,"Courier New",monospace;
+  background:var(--code-bg);color:var(--str);padding:1px 6px;border-radius:4px;font-size:13.5px;
+}
+/* ---------- 代码块 ---------- */
+.pre-wrap{margin:16px 0;position:relative}
+.pre-wrap .tag{
+  position:absolute;top:-10px;right:14px;font-size:11px;padding:1px 8px;border-radius:10px;
+  background:var(--panel2);color:var(--txt3);border:1px solid var(--line);z-index:2;
+}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:18px 20px;overflow-x:auto;font-size:13.5px;line-height:1.65;
+}
+pre code{background:none;padding:0;color:var(--txt);white-space:pre;font-size:13.5px}
+.kin{color:var(--kw)}.k{color:var(--kw)}.s{color:var(--str)}.n{color:var(--num)}.c{color:var(--cmt);font-style:italic}
+.tok-typ{color:var(--purple)}.tok-fn{color:var(--warn)}
+/* ---------- 卡片 ---------- */
+.card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:8px;padding:16px 20px;margin:18px 0}
+.card.warn{border-left-color:var(--warn)}
+.card.ok{border-left-color:var(--acc2)}
+.card .lab{font-size:12px;color:var(--acc);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.card.warn .lab{color:var(--warn)}
+.card.ok .lab{color:var(--acc2)}
+/* ---------- 口诀表 ---------- */
+table{width:100%;border-collapse:collapse;margin:18px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:10px 14px;text-align:left;vertical-align:top}
+th{background:var(--panel);color:var(--acc);font-weight:600}
+td:first-child{white-space:nowrap;color:var(--acc2);font-family:"SF Mono",Menlo,monospace;font-size:13px}
+tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+/* ---------- 目录锚点 ---------- */
+.anchor{scroll-margin-top:20px}
+/* ---------- 页脚 ---------- */
+footer{margin-top:80px;padding-top:24px;border-top:1px solid var(--line);color:var(--txt3);font-size:13px}
+/* ---------- 响应式 ---------- */
+#menuBtn{display:none}
+@media (max-width:900px){
+  #sidebar{position:fixed;z-index:100;transform:translateX(-100%);transition:.25s;box-shadow:4px 0 24px rgba(0,0,0,.5)}
+  #sidebar.open{transform:translateX(0)}
+  main{padding:64px 20px 100px}
+  #menuBtn{
+    display:flex;position:fixed;top:12px;left:12px;z-index:101;align-items:center;gap:6px;
+    background:var(--panel);color:var(--acc);border:1px solid var(--line);border-radius:8px;
+    padding:8px 12px;font-size:14px;cursor:pointer;
+  }
+  h2{font-size:22px;margin-top:48px}
+}
+</style>
+</head>
+<body>
+<div id="layout">
+<!-- ============ 侧边栏 ============ -->
+<aside id="sidebar">
+  <div class="brand">
+    <h1>现代 C++ 特性详解</h1>
+    <p>用 C 语言的视角重新理解每一个“高级特性”</p>
+  </div>
+
+  <div class="grp">导读</div>
+  <a href="#intro">这份文档怎么用</a>
+  <a href="#mindset">核心心法</a>
+
+  <div class="grp">一 · 类型与声明</div>
+  <a href="#auto">auto 类型推导</a>
+  <a href="#range-for" class="sub">范围 for 循环</a>
+  <a href="#structured-binding" class="sub">结构化绑定</a>
+  <a href="#nullptr" class="sub">nullptr</a>
+  <a href="#using-alias" class="sub">using 别名</a>
+  <a href="#enum-class" class="sub">enum class</a>
+
+  <div class="grp">二 · 内存管理</div>
+  <a href="#raii">RAII</a>
+  <a href="#smart-ptr" class="sub">智能指针</a>
+  <a href="#reference" class="sub">引用</a>
+  <a href="#move-semantics" class="sub">移动语义</a>
+
+  <div class="grp">三 · 泛型与模板</div>
+  <a href="#function-template" class="sub">函数模板</a>
+  <a href="#class-template" class="sub">类模板 / 容器</a>
+  <a href="#variadic" class="sub">变参模板</a>
+  <a href="#decltype" class="sub">decltype</a>
+  <a href="#concepts" class="sub">Concepts</a>
+
+  <div class="grp">四 · 标准库</div>
+  <a href="#containers" class="sub">vector / map</a>
+  <a href="#string" class="sub">string</a>
+  <a href="#algorithm" class="sub">算法 + Lambda</a>
+
+  <div class="grp">五 · 面向对象</div>
+  <a href="#polymorphism" class="sub">虚函数 / 多态</a>
+  <a href="#override" class="sub">override / final</a>
+
+  <div class="grp">六 · 新语法糖</div>
+  <a href="#braced-init" class="sub">统一初始化 {}</a>
+  <a href="#constexpr" class="sub">constexpr</a>
+  <a href="#optional" class="sub">optional</a>
+  <a href="#variant" class="sub">variant</a>
+
+  <div class="grp">路线</div>
+  <a href="#path">破冰学习路径</a>
+</aside>
+
+<!-- ============ 主内容 ============ -->
+<main>
+  <button id="menuBtn">☰ 目录</button>
+
+  <!-- ================= 导读 ================= -->
+  <h2 id="intro" class="anchor first-in-main">这份文档怎么用</h2>
+  <p>你当年用 C++/Qt 写 USB Dongle 拨号上网、短信发送的 PC 软件，底子是有的。这么多年没碰，真正需要补的不是“新知识”，而是两件事：</p>
+  <ol>
+    <li><strong>把当年学过的 C++ 基础概念重新唤醒</strong>——尤其是“类型”这件事；</li>
+    <li><strong>理解 C++11 之后加进来的一批“语法糖”到底在替你省什么力气</strong>。</li>
+  </ol>
+  <div class="card ok">
+    <div class="lab">一句话方法论</div>
+    <p>C++ 的每一个“高级特性”，本质都是对 C 语言里某种笨拙写法的封装和简化。只要把特性用 C 模拟一遍，它的价值立刻清晰：<strong>不增加新能力，只把“类型记账”的活从你手上拿走，交给编译器。</strong></p>
+  </div>
+  <p>每一节的阅读姿势都一样：</p>
+  <ul>
+    <li><strong>特性功能</strong>：这东西是干嘛的，能解决什么问题；</li>
+    <li><strong>产生背景</strong>：为什么 C++ 非要加它；</li>
+    <li><strong>C++ 怎么实现</strong>：编译器在背后做了什么，运行时有没有开销；</li>
+    <li><strong>怎么用</strong>：日常代码里你最常看到什么样子；</li>
+    <li><strong>C 模拟实现</strong>：用 C 的语法“拼”出等价效果，看差距在哪；</li>
+    <li><strong>心法口诀</strong>：读陌生代码时，心里怎么把它翻译成人话。</li>
+  </ul>
+
+  <h2 id="mindset" class="anchor">核心心法：C++ 只是替你记类型</h2>
+  <table>
+    <tr><th>C 的做法</th><th>C++ 的做法</th><th>本质差别</th></tr>
+    <tr><td>手写类型名</td><td>编译器推导</td><td>谁来做类型记账</td></tr>
+    <tr><td>手写 malloc/free</td><td>类型系统管释放</td><td>谁负责资源生命周期</td></tr>
+    <tr><td>void* + 抄代码</td><td>模板生成</td><td>谁来做代码生成</td></tr>
+    <tr><td>函数指针 + void* ctx</td><td>Lambda</td><td>是否自动携带状态</td></tr>
+  </table>
+  <p>记住这句话就够了：<strong>C 把类型、内存、状态都丢给程序员记账；C++ 把这些记账活编码进语言，让你专注业务逻辑。</strong></p>
+
+  <!-- ================= auto ================= -->
+  <h2 id="auto" class="anchor">特性功能：auto 自动类型推导</h2>
+
+  <h3>产生背景</h3>
+  <p>早年的 <code>auto</code> 是个没人用的存储类说明符（表示“栈上局部变量”），基本等于废的。后来 C++ 模板和 STL 越来越复杂，出现一个很现实的问题：</p>
+  <div class="pre-wrap"><span class="tag">C++98 现实困境</span>
+<pre><code><span class="c">// 手写极其痛苦，改一下容器类型全工程跟着改</span>
+std::vector&lt;std::pair&lt;std::string, std::map&lt;<span class="k">int</span>, std::shared_ptr&lt;Foo&gt;&gt;&gt;&gt;::iterator it = m.begin();</code></pre>
+  </div>
+  <p>类型信息编译器本来就知道，让人再手写一遍纯属浪费。C++11 就把 <code>auto</code> 改成<strong>“类型占位符”</strong>，让编译器根据初始化表达式推导类型。Lambda 和模板返回类型也根本写不出来，只能靠它。</p>
+
+  <h3>C++ 大概是怎么实现的</h3>
+  <p><code>auto</code> 完全在<strong>编译期</strong>处理，运行期根本不存在“auto”这个概念。你写 <code>auto x = expr;</code>，编译器内部等价于做一次模板推导，然后把 <code>auto</code> 直接替换成具体类型——生成汇编和手写类型一模一样，<strong>零运行时开销</strong>。</p>
+
+  <div class="card warn">
+    <div class="lab">推导规则：它会“丢东西”</div>
+    <p>这是从 C 视角最容易误解的地方。<code>auto</code> 按值推导时会丢掉顶层 <code>const</code>、解开引用、让数组退化为指针。你要引用，就得自己写 <code>&amp;</code>。</p>
+  </div>
+
+  <div class="pre-wrap"><span class="tag">推导规则</span>
+<pre><code><span class="k">int</span>  i  = <span class="n">10</span>;
+<span class="k">const int</span> ci = i;
+<span class="k">int</span>& ri = i;
+
+auto a = i;   <span class="c">// int             —— 纯拷贝</span>
+auto b = ci;   <span class="c">// int             顶层 const 被丢掉</span>
+auto c = ri;   <span class="c">// int             引用被解开</span>
+
+auto&amp; r1 = i;  <span class="c">// int&amp;            要别名就自己写 &amp;</span>
+auto&amp; r2 = ci;  <span class="c">// const int&amp;      保留底层 const</span></code></pre>
+  </div>
+
+  <h3>怎么用</h3>
+  <div class="pre-wrap"><span class="tag">简化迭代器</span>
+<pre><code><span class="k">auto</span> it = v.begin();              <span class="c">// 不再手写长类型</span></code></pre>
+  </div>
+  <div class="pre-wrap"><span class="tag">范围 for 三种姿势</span>
+<pre><code><span class="k">for</span> (auto x : v)       { ... }   <span class="c">// 拷贝</span>
+<span class="k">for</span> (auto&amp; x : v)     { x++; }  <span class="c">// 修改原对象</span>
+<span class="k">for</span> (<span class="k">const auto</span>&amp; x : v) { ... }  <span class="c">// 只读，不拷贝</span></code></pre>
+  </div>
+  <div class="pre-wrap"><span class="tag">Lambda 类型根本写不出来</span>
+<pre><code><span class="k">auto</span> cb = [](<span class="k">int</span> a, <span class="k">int</span> b) { <span class="k">return</span> a + b; };  <span class="c">// auto 是唯一写法</span></code></pre>
+  </div>
+
+  <h3>用 C 模拟“类似 auto”的能力</h3>
+  <div class="pre-wrap"><span class="tag">C：只能靠人脑推导 + typedef</span>
+<pre><code><span class="k">int</span> x = <span class="n">10</span>;
+<span class="k">double</span> y = <span class="n">3.14</span>;
+
+<span class="c">/* 模拟“复杂类型” */</span>
+<span class="k">typedef struct</span> { <span class="k">int</span>* data; size_t len; size_t cap; } Vector;
+<span class="k">typedef int</span>* VecIter;          <span class="c">// 迭代器就是指针</span>
+VecIter it = v.data;             <span class="c">// 等价于 auto it = v.begin()</span></code></pre>
+  </div>
+  <div class="pre-wrap"><span class="tag">C 模拟 auto&amp;（引用语义）</span>
+<pre><code><span class="k">int</span>  x = <span class="n">10</span>;
+<span class="k">int</span>* r = &amp;x;   <span class="c">// C++ 的 auto&amp; ≈ C 的 T*，但更安全、不用解引用</span>
+*r = <span class="n">20</span>;        <span class="c">// 改的是 x</span></code></pre>
+  </div>
+  <div class="pre-wrap"><span class="tag">C 模拟泛型（丢类型安全）</span>
+<pre><code><span class="c">/* 宏：无类型检查、易重复求值 */</span>
+<span class="pp">#define</span> <span class="tok-fn">MAX</span>(a, b) ((a) &gt; (b) ? (a) : (b))
+
+<span class="c">/* C11 _Generic：弱类型分发，这就是模板+auto的前身 */</span>
+<span class="pp">#define</span> <span class="tok-fn">MAX</span>(a, b) _Generic((a), \
+    <span class="k">int</span>: max_int, double: max_double)(a, b)</code></pre>
+  </div>
+
+  <h3>心法口诀</h3>
+  <table>
+    <tr><th>看到</th><th>心里翻译成</th></tr>
+    <tr><td>auto x = expr;</td><td>右边什么类型，x 就是什么类型（拷贝）</td></tr>
+    <tr><td>auto&amp; x = expr;</td><td>x 是右边对象的别名，能改</td></tr>
+    <tr><td>const auto&amp; x = expr;</td><td>只读引用，不拷贝</td></tr>
+    <tr><td>auto* p = expr;</td><td>p 是指针</td></tr>
+    <tr><td>auto&amp;&amp; x = expr;</td><td>万能引用，模板代码里才常见</td></tr>
+  </table>
+
+  <div class="pre-wrap"><span class="tag">C++ 现代写法 → 编译器眼里的等价代码 → C 模拟</span>
+<pre><code><span class="c">// C++ 现代写法</span>
+<span class="k">for</span> (<span class="k">const auto</span>&amp; n : names) std::cout &lt;&lt; n &lt;&lt; <span class="s">"\n"</span>;
+
+<span class="c">// 编译器眼里的等价代码</span>
+<span class="k">for</span> (std::vector&lt;std::string&gt;::const_iterator it = names.begin();
+     it != names.end(); ++it) {
+    <span class="k">const</span> std::string&amp; n = *it;
+    ...
+}
+
+<span class="c">// C 模拟版</span>
+<span class="k">const char</span>* names[] = {<span class="s">"alice"</span>, <span class="s">"bob"</span>};
+<span class="k">for</span> (size_t i = <span class="n">0</span>; i &lt; n; i++) {
+    <span class="k">const char</span>* name = names[i];
+    printf(<span class="s">"%s\n"</span>, name);
+}</code></pre>
+  </div>
+  <div class="card">
+    <div class="lab">一句话总结</div>
+    <p>区别不在“能力”，在<strong>谁来做类型记账</strong>：C++ 编译器做，C 程序员做。</p>
+  </div>
+
+  <!-- ================= 范围 for ================= -->
+  <h2 id="range-for" class="anchor">特性功能：范围 for 循环</h2>
+
+  <h3>产生背景</h3>
+  <p>C 里遍历数组永远是 <code>for (int i=0; i&lt;n; i++)</code>，遍历容器要手写迭代器起止、自增、判等——三段式样板代码重复到极点。C++11 的<strong>范围 for</strong> 把这四步压成一句：告诉它“遍历这个东西里的每个元素”，剩下的交给语言。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p>范围 for 是<strong>语法糖</strong>，编译期会被展开成等价的传统 for + 迭代器，<strong>零运行时开销</strong>。背后依赖两个约定：</p>
+  <ul>
+    <li>能被 <code>std::begin()</code> / <code>std::end()</code> 取到起止；</li>
+    <li>有自增 <code>++</code> 和判不等 <code>!=</code>。</li>
+  </ul>
+  <p>任何自定义类型只要实现了 <code>begin()/end()</code>，就能用范围 for——这也是它和 <code>auto</code> 经常捆绑出现的原因。</p>
+
+  <div class="pre-wrap"><span class="tag">语法糖展开</span>
+<pre><code><span class="c">// 你写的</span>
+<span class="k">for</span> (<span class="k">auto</span>&amp; x : container) x++;
+
+<span class="c">// 编译器展开（伪代码）</span>
+<span class="k">auto</span> __begin = std::begin(container);
+<span class="k">auto</span> __end   = std::end(container);
+<span class="k">for</span> (; __begin != __end; ++__begin) {
+    <span class="k">auto</span>&amp; x = *__begin;
+    x++;
+}</code></pre>
+  </div>
+
+  <h3>怎么用</h3>
+  <div class="pre-wrap"><span class="tag">三种姿势</span>
+<pre><code>std::vector&lt;<span class="k">int</span>&gt; v = {<span class="n">1</span>,<span class="n">2</span>,<span class="n">3</span>};
+
+<span class="k">for</span> (<span class="k">int</span> x : v)          { ... }     <span class="c">// 拷贝每个元素</span>
+<span class="k">for</span> (<span class="k">int</span>&amp; x : v)        { x *= <span class="n">2</span>; }  <span class="c">// 修改原元素</span>
+<span class="k">for</span> (<span class="k">const auto</span>&amp; x : v) { ... }     <span class="c">// 只读大对象，不拷贝</span></code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 的固定写法</span>
+<pre><code><span class="k">int</span> arr[] = {<span class="n">1</span>,<span class="n">2</span>,<span class="n">3</span>};
+size_t n = <span class="tok-fn">sizeof</span>(arr) / <span class="tok-fn">sizeof</span>(arr[<span class="n">0</span>]);
+
+<span class="k">for</span> (size_t i = <span class="n">0</span>; i &lt; n; i++) {
+    <span class="k">int</span> x = arr[i];      <span class="c">// 想“引用”只能写 int* px = &amp;arr[i];</span>
+    printf(<span class="s">"%d\n"</span>, x);
+}</code></pre>
+  </div>
+  <p>想让自定义容器也能“for-each”，C 只能靠<strong>宏</strong>，这是 glib / uthash 等库的常见套路：</p>
+  <div class="pre-wrap"><span class="tag">C 用宏模拟 for-each</span>
+<pre><code><span class="pp">#define</span> <span class="tok-fn">VEC_FOREACH</span>(ptr, vec) \
+    <span class="k">for</span> (<span class="k">int</span>* (ptr) = (vec).data; (ptr) != (vec).data + (vec).len; ++(ptr))
+
+VEC_FOREACH(p, v) {
+    printf(<span class="s">"%d\n"</span>, *p);
+}</code></pre>
+  </div>
+  <p>宏能跑，但<strong>类型不安全、作用域诡异、出了 bug 极难调试</strong>——这正是 C++ 把它升级成语法的理由。</p>
+
+  <h3>心法口诀</h3>
+  <table>
+    <tr><th>看到</th><th>心里翻译成</th></tr>
+    <tr><td>for (T x : c)</td><td>对 c 里每个元素拷贝一份给 x</td></tr>
+    <tr><td>for (T&amp; x : c)</td><td>对 c 里每个元素取别名，能改原值</td></tr>
+    <tr><td>for (const T&amp; x : c)</td><td>只读遍历，不拷贝（大对象必用）</td></tr>
+  </table>
+  <div class="card">
+    <div class="lab">一句话总结</div>
+    <p>范围 for = <strong>把“如何遍历”从你代码里删掉，只留下“遍历什么”</strong>。开销为零，可读性翻倍。</p>
+  </div>
+
+  <!-- ================= 结构化绑定 ================= -->
+  <h2 id="structured-binding" class="anchor">特性功能：结构化绑定（C++17）</h2>
+
+  <h3>产生背景</h3>
+  <p>从 pair / tuple / 结构体里取成员，C++11 时代是 <code>p.first</code>、<code>p.second</code>，或写一堆临时变量再逐个赋值。代码又长又难读，尤其遍历 map 时 <code>it-&gt;first</code>、<code>it-&gt;second</code> 非常反人类。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p>编译期把“元组式对象”的成员<strong>绑定到一组名字上</strong>，本质是语法糖，零开销。支持 pair、tuple、数组、以及你自己定义的 <code>std::tuple_size</code> / <code>std::get</code> 特化类型。</p>
+
+  <h3>怎么用</h3>
+  <div class="pre-wrap"><span class="tag">三种典型场景</span>
+<pre><code>std::map&lt;std::string, <span class="k">int</span>&gt; m = { {<span class="s">"a"</span>,<span class="n">1</span>}, {<span class="s">"b"</span>,<span class="n">2</span>} };
+
+<span class="c">// 遍历 map：不再写 it-&gt;first / it-&gt;second</span>
+<span class="k">for</span> (<span class="k">const auto</span>&amp; [key, val] : m) {
+    std::cout &lt;&lt; key &lt;&lt; <span class="s">":"</span> &lt;&lt; val &lt;&lt; <span class="s">"\n"</span>;
+}
+
+<span class="c">// 拆 pair</span>
+<span class="k">auto</span> [id, name] = std::make_pair(<span class="n">42</span>, <span class="s">"alice"</span>);
+
+<span class="c">// 拆 tuple，并用 &amp; 修改</span>
+<span class="k">auto</span>&amp; [x, y, z] = point;  <span class="c">// 修改 x/y/z 就是改 point</span></code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 只能逐个拆</span>
+<pre><code><span class="k">struct</span> KV { <span class="k">char</span>* key; <span class="k">int</span> val; };
+<span class="k">struct</span> KV m[] = { {<span class="s">"a"</span>,<span class="n">1</span>}, {<span class="s">"b"</span>,<span class="n">2</span>} };
+
+<span class="k">for</span> (size_t i = <span class="n">0</span>; i &lt; <span class="n">2</span>; i++) {
+    <span class="k">char</span>* key = m[i].key;   <span class="c">// 多写两行拆字段</span>
+    <span class="k">int</span>   val = m[i].val;
+    printf(<span class="s">"%s:%d\n"</span>, key, val);
+}</code></pre>
+  </div>
+
+  <h3>心法口诀</h3>
+  <table>
+    <tr><th>看到</th><th>心里翻译成</th></tr>
+    <tr><td>auto [a, b] = x;</td><td>把 x 的第 1、2 个成员分别起名叫 a、b</td></tr>
+    <tr><td>auto&amp; [a, b] = x;</td><td>起别名，改 a/b 就是改 x 的成员</td></tr>
+    <tr><td>const auto&amp; [a, b] = x;</td><td>只读拆解，不拷贝</td></tr>
+  </table>
+  <div class="card">
+    <div class="lab">一句话总结</div>
+    <p>结构化绑定 = <strong>给“多返回值”起好名字</strong>。你当年在 C 里写 <code>int ret = func(&amp;out1, &amp;out2)</code> 的别扭，C++17 一行解决。</p>
+  </div>
+
+  <!-- ================= nullptr ================= -->
+  <h2 id="nullptr" class="anchor">特性功能：nullptr</h2>
+
+  <h3>产生背景</h3>
+  <p>C 用 <code>NULL</code>（本质是 <code>0</code> 或 <code>(void*)0</code>）。问题来了：</p>
+  <div class="pre-wrap"><span class="tag">NULL 的坑</span>
+<pre><code><span class="k">void</span> <span class="tok-fn">f</span>(<span class="k">int</span>);
+<span class="k">void</span> <span class="tok-fn">f</span>(<span class="k">char</span>*);
+
+f(<span class="n">NULL</span>);   <span class="c">// 调用 f(int)！因为 NULL 是 0</span></code></pre>
+  </div>
+  <p><code>NULL</code> 类型是整型，遇到重载函数会“选错人”。这是 C 的设计遗留。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p>C++11 引入 <code>nullptr</code>，它是一个<strong>独立类型 <code>std::nullptr_t</code></code> 的常量，能隐式转换成任意指针类型，但<strong>不能</strong>转换成整型。这样重载决议就不会误选整型版本。</p>
+
+  <h3>怎么用</h3>
+  <div class="pre-wrap"><span class="tag">永远用 nullptr</span>
+<pre><code><span class="k">int</span>*   p = <span class="n">nullptr</span>;
+<span class="k">char</span>*  s = <span class="n">nullptr</span>;
+<span class="k">void</span>*  v = <span class="n">nullptr</span>;
+
+<span class="k">if</span> (p == <span class="n">nullptr</span>) ...
+<span class="k">if</span> (!p) ...              <span class="c">// 等价写法</span></code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 的无奈</span>
+<pre><code><span class="pp">#define</span> <span class="n">NULL</span> ((<span class="k">void</span>*)<span class="n">0</span>)   <span class="c">// 常见定义，但 C++ 里 (void*) 不能隐转成 int*</span>
+
+<span class="k">int</span>*  p = <span class="n">NULL</span>;
+<span class="k">char</span>* s = <span class="n">0</span>;           <span class="c">// 只能靠纪律：指针一律用 NULL</span></code></pre>
+  </div>
+  <div class="card warn">
+    <div class="lab">一个 Qt 时代的真实坑</div>
+    <p>当年 Qt 信号槽、<code>connect</code> 重载繁多，传 <code>NULL</code> 触发“重载不明确”的编译错误很常见。现在统一写 <code>nullptr</code>，编译器和代码都更干净。</p>
+  </div>
+
+  <h3>心法口诀</h3>
+  <table>
+    <tr><th>看到</th><th>心里翻译成</th></tr>
+    <tr><td>nullptr</td><td>“这个指针当前不指向任何对象”</td></tr>
+    <tr><td>if (p)</td><td>if (p != nullptr)</td></tr>
+  </table>
+  <div class="card ok">
+    <div class="lab">规则</div>
+    <p><strong>任何新代码里 <code>NULL</code> 和 <code>0</code> 都别再用</strong>，一律 <code>nullptr</code>。</p>
+  </div>
+
+  <!-- ================= using 别名 ================= -->
+  <h2 id="using-alias" class="anchor">特性功能：using 类型别名（C++11）</h2>
+
+  <h3>产生背景</h3>
+  <p><code>typedef</code> 的写法对人脑不友好，尤其是<strong>函数指针</strong>和<strong>模板别名</strong>——后者 <code>typedef</code> 根本做不到。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p>纯编译期别名，零开销。<code>using</code> 还支持模板参数化，这是它相对 <code>typedef</code> 的杀手级优势。</p>
+
+  <div class="pre-wrap"><span class="tag">对比</span>
+<pre><code><span class="c">// typedef 写法</span>
+<span class="k">typedef</span> <span class="k">void</span> (*Callback)(<span class="k">int</span>);                    <span class="c">// 难读</span>
+<span class="k">typedef</span> std::map&lt;std::string, <span class="k">int</span>&gt; StrIntMap;     <span class="c">// 普通别名可以</span>
+<span class="c">// typedef std::vector&lt;T&gt; Vec;                   // ❌ 模板别名做不到</span>
+
+<span class="c">// using 写法（语义相同，可读性更好）</span>
+<span class="k">using</span> Callback  = <span class="k">void</span>(*)(<span class="k">int</span>);
+<span class="k">using</span> StrIntMap = std::map&lt;std::string, <span class="k">int</span>&gt;;
+<span class="k">template</span>&lt;<span class="k">typename</span> T&gt;
+<span class="k">using</span> Vec = std::vector&lt;T&gt;;                     <span class="c">// ✅ 模板别名</span></code></pre>
+  </div>
+
+  <h3>怎么用</h3>
+  <div class="pre-wrap"><span class="tag">模板别名是核心场景</span>
+<pre><code><span class="k">template</span>&lt;<span class="k">typename</span> K, <span class="k">typename</span> V&gt;
+<span class="k">using</span> StringDict = std::map&lt;K, std::vector&lt;V&gt;&gt;;
+
+StringDict&lt;std::string, <span class="k">int</span>&gt; scores;   <span class="c">// = map&lt;string, vector&lt;int&gt;&gt;</span></code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 只有 typedef + 宏</span>
+<pre><code><span class="k">typedef</span> <span class="k">void</span> (*Callback)(<span class="k">int</span>);
+
+<span class="pp">#define</span> <span class="tok-fn">VEC</span>(T) T*
+
+VEC(<span class="k">int</span>)   arr = <span class="n">NULL</span>;   <span class="c">// 用宏模拟模板别名，无类型检查</span></code></pre>
+  </div>
+  <div class="card">
+    <div class="lab">规则</div>
+    <p>现代 C++ 代码里 <code>using</code> 已经基本取代 <code>typedef</code>。<strong>看到 <code>using X = ...</code> 就当它是“给类型起绰号”</strong>。</p>
+  </div>
+
+  <!-- ================= enum class ================= -->
+  <h2 id="enum-class" class="anchor">特性功能：强类型枚举 enum class</h2>
+
+  <h3>产生背景</h3>
+  <p>C 的裸枚举会污染命名空间，还能隐式转换成整型——这两点都是 bug 温床：</p>
+  <div class="pre-wrap"><span class="tag">C 枚举的问题</span>
+<pre><code><span class="k">enum</span> Color { RED, GREEN, BLUE };
+<span class="k">enum</span> Fruit { APPLE, BANANA, RED };   <span class="c">// ❌ 编译错误：RED 重定义</span>
+
+<span class="k">void</span> <span class="tok-fn">draw</span>(<span class="k">int</span> color);
+<span class="tok-fn">draw</span>(RED);                            <span class="c">// 能编过，但语义丢失</span></code></pre>
+  </div>
+
+  <h3>C++ 怎么实现</h3>
+  <p><code>enum class</code> 把枚举值放进<strong>自己的作用域</strong>，且<strong>禁止隐式转换到整型</strong>，只能显式 <code>static_cast</code>。零开销（底层仍是整数）。</p>
+
+  <div class="pre-wrap"><span class="tag">对比</span>
+<pre><code><span class="k">enum class</span> Color { Red, Green, Blue };
+<span class="k">enum class</span> Fruit { Apple, Banana, Red };   <span class="c">// ✅ 不冲突</span>
+
+Color c = Color::Red;       <span class="c">// 必须加作用域</span>
+<span class="k">int</span>   i = <span class="tok-fn">static_cast</span>&lt;<span class="k">int</span>&gt;(c);   <span class="c">// 必须显式转换</span>
+
+<span class="tok-fn">draw</span>(Color::Red);          <span class="c">// 类型不匹配，编译报错</span></code></pre>
+  </div>
+
+  <h3>怎么用</h3>
+  <div class="pre-wrap"><span class="tag">还能指定底层类型省内存</span>
+<pre><code><span class="k">enum class</span> Status : uint8_t { Ok, Err, Busy };   <span class="c">// 只占 1 字节</span>
+
+<span class="k">switch</span> (s) {
+    <span class="k">case</span> Status::Ok:   <span class="k">break</span>;
+    <span class="k">case</span> Status::Err:  <span class="k">break</span>;
+}</code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 的三种土办法</span>
+<pre><code><span class="c">/* 1. 前缀命名，防冲突靠人 */</span>
+<span class="k">enum</span> Color { COLOR_RED, COLOR_GREEN };
+
+<span class="c">/* 2. 包一层结构体，模拟作用域（但不常用） */</span>
+<span class="k">struct</span> Color { <span class="k">enum</span> { Red, Green } val; };
+
+<span class="c">/* 3. 指定大小 */</span>
+<span class="k">typedef</span> uint8_t Status;
+<span class="pp">#define</span> <span class="n">STATUS_OK</span>  <span class="n">0</span>
+<span class="pp">#define</span> <span class="n">STATUS_ERR</span> <span class="n">1</span></code></pre>
+  </div>
+  <div class="card">
+    <div class="lab">心法</div>
+    <p><code>enum class</code> = <strong>“带身份证的枚举”</strong>：不污染命名空间、不偷偷变成 int。任何新代码都该用它，别再用裸 <code>enum</code>。</p>
+  </div>
+
+  <!-- ================= RAII ================= -->
+  <h2 id="raii" class="anchor">特性功能：RAII 资源获取即初始化</h2>
+
+  <h3>产生背景</h3>
+  <p>C 里打开文件、加锁、分配内存，都要成对的 <code>open/close</code>、<code>lock/unlock</code>、<code>malloc/free</code>。问题是：中间一旦 <code>return</code>、走到异常分支、或有人忘了，资源就泄漏。你当年写 Qt/USB 程序，串口/设备句柄泄漏是家常便饭。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p>RAII 的核心约定只有一条：<strong>资源的生命周期 = 对象的生命周期</strong>。资源在构造函数里获取，在析构函数里释放。而 C++ 保证：<strong>任何对象离开作用域，析构一定被调用</strong>——哪怕是因为异常、<code>return</code>、<code>break</code> 离开的。</p>
+  <div class="pre-wrap"><span class="tag">加锁的 RAII 包装</span>
+<pre><code><span class="k">struct</span> LockGuard {
+    pthread_mutex_t&amp; m;
+    <span class="tok-fn">LockGuard</span>(pthread_mutex_t&amp; m_) : m(m_) { pthread_mutex_lock(&amp;m); }
+    ~<span class="tok-fn">LockGuard</span>() { pthread_mutex_unlock(&amp;m); }   <span class="c">// 离开作用域必调用</span>
+};
+
+<span class="k">void</span> <span class="tok-fn">f</span>() {
+    LockGuard g(mu);        <span class="c">// 加锁</span>
+    <span class="k">if</span> (error) <span class="k">return</span>;   <span class="c">// 不会死锁，析构自动 unlock</span>
+    <span class="c">// ...</span>
+}                          <span class="c">// 正常结束也 unlock</span></code></pre>
+  </div>
+  <p>这就是 <code>std::lock_guard</code>、<code>std::unique_ptr</code>、<code>std::fstream</code> 全部的共同祖先。</p>
+
+  <h3>怎么用</h3>
+  <div class="pre-wrap"><span class="tag">现代代码里你已经天天在用</span>
+<pre><code>{
+    std::lock_guard&lt;std::mutex&gt; lock(mu);   <span class="c">// 锁住</span>
+    shared_data++;
+}   <span class="c">// 自动解锁，任何路径都不漏</span>
+
+std::ifstream f(<span class="s">"data.txt"</span>);   <span class="c">// 析构自动 close</span>
+std::vector&lt;<span class="k">int</span>&gt; v;              <span class="c">// 析构自动 free 内存</span></code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 的三条出路，都不完美</span>
+<pre><code><span class="c">/* 1. goto 清理（Linux 内核风格） */</span>
+<span class="k">int</span> <span class="tok-fn">f</span>() {
+    pthread_mutex_lock(&amp;mu);
+    <span class="k">if</span> (init() &lt; <span class="n">0</span>) <span class="k">goto</span> fail;
+    <span class="k">if</span> (open() &lt; <span class="n">0</span>) <span class="k">goto</span> fail2;
+    pthread_mutex_unlock(&amp;mu);
+    <span class="k">return</span> <span class="n">0</span>;
+fail2: close();
+fail:  pthread_mutex_unlock(&amp;mu);
+    <span class="k">return</span> -<span class="n">1</span>;
+}
+
+<span class="c">/* 2. 代码块 + 宏（GCC 扩展） */</span>
+<span class="pp">#define</span> <span class="tok-fn">SCOPE_EXIT</span>(x) \
+    __attribute__((cleanup(x)))
+
+<span class="c">/* 3. 手动纪律：每个路径都 unlock/free —— 不可靠 */</span></code></pre>
+  </div>
+  <p>C 没有“作用域结束自动调用函数”的语言机制，<strong>只能靠编码规范 + 代码审查</strong>来保证不漏。这是 C++ 相对 C 最本质的差距之一。</p>
+
+  <h3>心法口诀</h3>
+  <table>
+    <tr><th>看到</th><th>心里翻译成</th></tr>
+    <tr><td>某个对象被创建</td><td>它拿了某个资源，记住：它死的时候会还</td></tr>
+    <tr><td>lock_guard / unique_ptr / ifstream</td><td>都是 RAII，作用域结束自动清理</td></tr>
+    <tr><td>大括号 { ... }</td><td>人为制造作用域，提前触发析构</td></tr>
+  </table>
+  <div class="card ok">
+    <div class="lab">一句话总结</div>
+    <p>RAII = <strong>把“记得释放”从程序员的责任，变成编译器的责任</strong>。理解了它，智能指针、锁、文件流全是同一件事。</p>
+  </div>
+
+  <!-- ================= 智能指针 ================= -->
+  <h2 id="smart-ptr" class="anchor">特性功能：智能指针 shared_ptr / unique_ptr</h2>
+
+  <h3>产生背景</h3>
+  <p>C 里 <code>malloc/free</code> 的所有权全靠注释说明：“这个函数 free 还是调用者 free？”忘了就泄漏，多 free 一次就崩溃。在 Qt 这种对象树里，父子所有权靠 <code>QObject</code> 手动维护，一不小心就双重释放。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p>两个智能指针对应两种所有权语义，都是<strong>栈上的小对象 + RAII</strong>，析构时自动 <code>delete</code>：</p>
+  <ul>
+    <li><strong>unique_ptr</strong>：独占所有权。禁止拷贝，只许移动。内部就是一个裸指针，<strong>开销 ≈ 0</strong>。</li>
+    <li><strong>shared_ptr</strong>：共享所有权。内部有<strong>引用计数</strong>（控制块），最后一个引用离开才释放。有极小开销（原子操作 + 控制块内存）。</li>
+  </ul>
+  <div class="pre-wrap"><span class="tag">两个指针的开销差异</span>
+<pre><code>std::unique_ptr&lt;Foo&gt; a = std::make_unique&lt;Foo&gt;();  <span class="c">// sizeof == 一个指针</span>
+std::shared_ptr&lt;Foo&gt; b = std::make_shared&lt;Foo&gt;();   <span class="c">// 指针 + 引用计数块</span>
+
+a.release();     <span class="c">// 放弃所有权（不释放）</span>
+b.use_count();   <span class="c">// 当前有几个持有者</span></code></pre>
+  </div>
+
+  <h3>怎么用</h3>
+  <div class="pre-wrap"><span class="tag">三种典型所有权</span>
+<pre><code><span class="c">// 1. 独占：工厂函数返回值、容器里装对象</span>
+std::unique_ptr&lt;Foo&gt; <span class="tok-fn">create_foo</span>() {
+    <span class="k">return</span> std::make_unique&lt;Foo&gt;();
+}
+std::vector&lt;std::unique_ptr&lt;Shape&gt;&gt; shapes;   <span class="c">// 多态对象容器</span>
+
+<span class="c">// 2. 共享：缓存、回调上下文、跨线程</span>
+std::shared_ptr&lt;Context&gt; ctx = std::make_shared&lt;Context&gt;();
+std::weak_ptr&lt;Context&gt;   w   = ctx;           <span class="c">// 旁观者，不增加计数，防循环引用</span>
+
+<span class="c">// 3. 非拥有：只观察，用裸指针或引用</span>
+<span class="k">void</span> <span class="tok-fn">render</span>(<span class="k">const</span> Foo&amp; f);</code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 里实现引用计数</span>
+<pre><code><span class="k">struct</span> RefCounted {
+    <span class="k">void</span>*  obj;
+    size_t  refs;
+};
+
+<span class="k">void</span>* <span class="tok-fn">rc_retain</span>(<span class="k">struct</span> RefCounted* p) {
+    __atomic_add_fetch(&amp;p-&gt;refs, <span class="n">1</span>, __ATOMIC_SEQ_CST);
+    <span class="k">return</span> p-&gt;obj;
+}
+<span class="k">void</span> <span class="tok-fn">rc_release</span>(<span class="k">struct</span> RefCounted* p) {
+    <span class="k">if</span> (__atomic_sub_fetch(&amp;p-&gt;refs, <span class="n">1</span>, __ATOMIC_SEQ_CST) == <span class="n">0</span>)
+        free(p-&gt;obj);      <span class="c">// 最后一个走的人释放</span>
+}</code></pre>
+  </div>
+  <p>这是 Objective-C <code>retain/release</code>、GObject <code>g_object_ref/unref</code> 的同一套机制。C++ 只是把它<strong>自动化并绑定到作用域</strong>。</p>
+
+  <h3>心法口诀</h3>
+  <table>
+    <tr><th>看到</th><th>心里翻译成</th></tr>
+    <tr><td>unique_ptr&lt;T&gt;</td><td>“我是唯一主人，我死对象就死”</td></tr>
+    <tr><td>shared_ptr&lt;T&gt;</td><td>“大家一起用，最后一个走的关灯”</td></tr>
+    <tr><td>weak_ptr&lt;T&gt;</td><td>“我看一眼，不占股份，防循环引用”</td></tr>
+    <tr><td>T* / const T&amp;</td><td>“我不拥有它，只是借用”</td></tr>
+  </table>
+  <div class="card warn">
+    <div class="lab">关键：所有权三种状态</div>
+    <ul>
+      <li><strong>拥有且独占</strong> → <code>unique_ptr</code></li>
+      <li><strong>拥有且共享</strong> → <code>shared_ptr</code></li>
+      <li><strong>不拥有（借用）</strong> → 裸指针 / 引用</li>
+    </ul>
+    <p>读到任何指针，先判断“谁拥有它”——这就是现代 C++ 的内存哲学。</p>
+  </div>
+
+  <!-- ================= 引用 ================= -->
+  <h2 id="reference" class="anchor">特性功能：引用（不是新东西，但你当年用 Qt 时可能没细想）</h2>
+
+  <h3>产生背景</h3>
+  <p>C 的函数参数只有“传值”和“传指针”。传值大结构体要拷贝，传指针要写 <code>&amp;</code>、要解引用 <code>*</code>、还要判空。引用就是<strong>“必须绑定对象、语法像值、本质是别名”</strong>的语法糖。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p>引用在底层就是<strong>一个指针</strong>，零开销。但它和指针有三点不同（这是它存在的理由）：</p>
+  <ol>
+    <li><strong>必须初始化</strong>，不能为 null；</li>
+    <li><strong>不能重新绑定</strong>（一生只认一个对象）；</li>
+    <li><strong>不用解引用</strong>，用起来像普通变量。</li>
+  </ol>
+  <div class="pre-wrap"><span class="tag">对比</span>
+<pre><code><span class="c">// 引用：不能为 null，不用解引用</span>
+<span class="k">void</span> <span class="tok-fn">inc</span>(<span class="k">int</span>&amp; x) { x++; }
+<span class="k">int</span> a = <span class="n">1</span>;
+<span class="tok-fn">inc</span>(a);                     <span class="c">// 调用干净，不用 &amp;a</span>
+
+<span class="c">// 指针：可为 null，要解引用</span>
+<span class="k">void</span> <span class="tok-fn">inc</span>(<span class="k">int</span>* x) { (*x)++; }
+<span class="tok-fn">inc</span>(&amp;a);</code></pre>
+  </div>
+
+  <h3>怎么用</h3>
+  <div class="pre-wrap"><span class="tag">三种高频场景</span>
+<pre><code><span class="k">void</span> <span class="tok-fn">modify</span>(Foo&amp; f);                <span class="c">// 输出参数，语义清晰</span>
+<span class="k">void</span> <span class="tok-fn">read</span>(<span class="k">const</span> Foo&amp; f);            <span class="c">// 只读大对象，不拷贝、不修改</span>
+Foo&amp; <span class="tok-fn">find</span>(<span class="k">int</span> id);                  <span class="c">// 返回引用，可链式赋值</span></code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 用指针模拟</span>
+<pre><code><span class="k">void</span> <span class="tok-fn">modify</span>(<span class="k">int</span>* x) { (*x)++; }   <span class="c">// 多一层语法噪音</span>
+
+<span class="k">const</span> BigObj* <span class="tok-fn">read</span>(<span class="k">const</span> BigObj* p);</code></pre>
+  </div>
+  <div class="card">
+    <div class="lab">心法</div>
+    <p>引用 = <strong>“语法像值、本质是别名、绝不为空”</strong>。C++ 代码里看到 <code>T&amp;</code>，就当它“就是这个对象本人”；看到 <code>T*</code>，就当它“可能是空的、可重新指向”。</p>
+  </div>
+
+  <!-- ================= 移动语义 ================= -->
+  <h2 id="move-semantics" class="anchor">特性功能：移动语义与右值引用（C++11）</h2>
+
+  <h3>产生背景</h3>
+  <p><code>vector</code>、<code>string</code> 这类“持有资源的对象”，拷贝代价很高（要分配新内存 + 逐字节复制）。但很多时候<strong>源对象马上就要被扔掉了</strong>——比如函数返回一个大 vector、或把一个临时对象塞进容器。C++98 只能老老实实深拷贝，白白浪费。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p>C++11 引入<strong>右值引用 <code>T&amp;&amp;</code></strong>，让函数能区分“我还能用这个对象”和“我马上扔掉它”。移动构造/赋值的做法是：<strong>把源对象的内部资源（指针）直接偷过来，把源对象置为空壳</strong>。</p>
+  <div class="pre-wrap"><span class="tag">移动 = 偷指针</span>
+<pre><code><span class="k">class</span> Buffer {
+    <span class="k">char</span>* data;
+    size_t size;
+<span class="k">public</span>:
+    <span class="c">// 拷贝：老老实实复制</span>
+    Buffer(<span class="k">const</span> Buffer&amp; o) : size(o.size), data(<span class="k">new</span> <span class="k">char</span>[o.size]) {
+        std::memcpy(data, o.data, size);
+    }
+    <span class="c">// 移动：直接偷</span>
+    Buffer(Buffer&amp;&amp; o) <span class="k">noexcept</span>
+        : data(o.data), size(o.size) {
+        o.data = <span class="n">nullptr</span>;   <span class="c">// 置空壳，防止 o 析构时释放</span>
+        o.size = <span class="n">0</span>;
+    }
+};</code></pre>
+  </div>
+  <p>编译器在“源对象是临时对象/即将销毁”时<strong>自动选择移动</strong>，无需你手写 <code>std::move</code>。显式 <code>std::move(x)</code> 的意思是：<strong>“我承诺不再用 x，请把它当右值处理”</strong>。</p>
+
+  <h3>怎么用</h3>
+  <div class="pre-wrap"><span class="tag">日常能感知到的效果</span>
+<pre><code>std::vector&lt;<span class="k">int</span>&gt; <span class="tok-fn">make_vec</span>() {
+    std::vector&lt;<span class="k">int</span>&gt; v(<span class="n">1000000</span>);
+    <span class="k">return</span> v;          <span class="c">// NRVO/移动，不拷贝百万元素</span>
+}
+std::vector&lt;<span class="k">int</span>&gt; a = <span class="tok-fn">make_vec</span>();
+
+std::vector&lt;<span class="k">int</span>&gt; b = std::move(a);   <span class="c">// O(1) 搬运，a 变空</span>
+<span class="tok-fn">assert</span>(a.empty());</code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <p>C 里要达到同等效果，只能<strong>手写“窃取内部指针”的 swap 逻辑</strong>——这正是 glib、内核、Redis 等 C 项目里常见的手法：</p>
+  <div class="pre-wrap"><span class="tag">C 的手写 move</span>
+<pre><code><span class="k">struct</span> Buffer { <span class="k">char</span>* data; size_t size; };
+
+<span class="k">void</span> <span class="tok-fn">buffer_move</span>(<span class="k">struct</span> Buffer* dst, <span class="k">struct</span> Buffer* src) {
+    dst-&gt;data = src-&gt;data;   <span class="c">// 偷指针</span>
+    dst-&gt;size = src-&gt;size;
+    src-&gt;data = <span class="n">NULL</span>;        <span class="c">// 置空壳</span>
+    src-&gt;size = <span class="n">0</span>;
+}
+
+<span class="k">struct</span> Buffer a = {<span class="tok-fn">malloc</span>(<span class="n">1024</span>), <span class="n">1024</span>};
+<span class="k">struct</span> Buffer b = {<span class="n">0</span>};
+<span class="tok-fn">buffer_move</span>(&amp;b, &amp;a);        <span class="c">// 等价于 C++ 的 b = std::move(a)</span></code></pre>
+  </div>
+
+  <h3>心法口诀</h3>
+  <table>
+    <tr><th>看到</th><th>心里翻译成</th></tr>
+    <tr><td>T&amp;&amp;</td><td>“右值引用，我承诺调用方这个对象可以拆掉”</td></tr>
+    <tr><td>std::move(x)</td><td>“我不再用 x 了，请把 x 当右值处理”</td></tr>
+    <tr><td>函数返回局部对象</td><td>编译器自动移动/NRVO，别担心拷贝</td></tr>
+  </table>
+  <div class="card warn">
+    <div class="lab">读代码的实用结论</div>
+    <p>日常<strong>读代码时</strong>你基本不用手写移动构造，只要看懂 <code>std::move</code> 是“这里发生了资源搬运”就够。<code>T&amp;&amp;</code> 在函数参数里还承担<strong>万能引用/完美转发</strong>的角色，那是模板代码的事，遇到再查。</p>
+  </div>
+
+  <!-- ================= 函数模板 ================= -->
+  <h2 id="function-template" class="anchor">特性功能：函数模板</h2>
+
+  <h3>产生背景</h3>
+  <p>同一份逻辑要为 <code>int</code>、<code>float</code>、<code>long</code> 各写一份，只有类型不同——C 里只能抄代码或用宏。<code>qsort</code> 选择了用 <code>void*</code> + 函数指针，代价是<strong>完全丢失类型信息</strong>。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p>模板 = <strong>编译期的类型安全的代码生成器</strong>。编译器在编译期根据实参类型，<strong>为每种用到的类型生成一份独立函数</strong>。类型安全、内联友好、零运行时开销（代价是编译慢、二进制略大、报错信息难懂）。</p>
+  <div class="pre-wrap"><span class="tag">模板 vs 宏</span>
+<pre><code><span class="c">// C++ 模板：类型安全</span>
+<span class="k">template</span>&lt;<span class="k">typename</span> T&gt;
+T <span class="tok-fn">max</span>(T a, T b) { <span class="k">return</span> a &gt; b ? a : b; }
+
+<span class="k">int</span>   x = <span class="tok-fn">max</span>(<span class="n">1</span>, <span class="n">2</span>);       <span class="c">// 编译器生成 int   max(int,int)</span>
+<span class="k">float</span> y = <span class="tok-fn">max</span>(<span class="n">1.0f</span>, <span class="n">2.0f</span>);  <span class="c">// 生成 float max(float,float)</span>
+
+<span class="c">// C 宏：无类型检查、易重复求值</span>
+<span class="pp">#define</span> <span class="tok-fn">MAX</span>(a, b) ((a) &gt; (b) ? (a) : (b))
+<span class="tok-fn">MAX</span>(++i, j);   <span class="c">// i 可能被加两次！</span></code></pre>
+  </div>
+
+  <h3>怎么用</h3>
+  <div class="pre-wrap"><span class="tag">现代写法和 auto 参数</span>
+<pre><code><span class="k">template</span>&lt;<span class="k">typename</span> T&gt;
+<span class="k">void</span> <span class="tok-fn">swap</span>(T&amp; a, T&amp; b) {
+    T tmp = std::move(a);
+    a = std::move(b);
+    b = std::move(tmp);
+}
+
+<span class="c">// C++20：缩写形式（看起来像动态类型，其实是模板）</span>
+<span class="k">auto</span> <span class="tok-fn">add</span>(<span class="k">auto</span> a, <span class="k">auto</span> b) { <span class="k">return</span> a + b; }</code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 的三种替代，各有权衡</span>
+<pre><code><span class="c">/* 1. 宏：最简单，最不安全 */</span>
+<span class="pp">#define</span> <span class="tok-fn">MAX</span>(a, b) ((a) &gt; (b) ? (a) : (b))
+
+<span class="c">/* 2. _Generic（C11）：有类型分发，但每个类型要手写一份实现 */</span>
+<span class="k">int</span>   <span class="tok-fn">max_i</span>(<span class="k">int</span> a, <span class="k">int</span> b)   { <span class="k">return</span> a &gt; b ? a : b; }
+<span class="k">double</span> <span class="tok-fn">max_d</span>(<span class="k">double</span> a, <span class="k">double</span> b) { <span class="k">return</span> a &gt; b ? a : b; }
+<span class="pp">#define</span> <span class="tok-fn">MAX</span>(a, b) _Generic((a), int: max_i, double: max_d)(a, b)
+
+<span class="c">/* 3. void* + 回调：qsort 风格，完全丢失类型安全 */</span>
+<span class="k">void</span> <span class="tok-fn">qsort</span>(<span class="k">void</span>* base, size_t n, size_t sz,
+             <span class="k">int</span> (*cmp)(<span class="k">const void</span>*, <span class="k">const void</span>*));</code></pre>
+  </div>
+  <div class="card">
+    <div class="lab">一句话总结</div>
+    <p>模板 = <strong>编译期的类型安全的代码生成器</strong>。C 想达到同等效果，要么抄代码，要么用 <code>void*</code> 牺牲类型安全，要么用 <code>_Generic</code> 抄得稍微优雅一点。</p>
+  </div>
+
+  <!-- ================= 类模板 ================= -->
+  <h2 id="class-template" class="anchor">特性功能：类模板与容器（vector / map）</h2>
+
+  <h3>产生背景</h3>
+  <p>通用容器是模板最成功的应用。<code>vector&lt;int&gt;</code>、<code>vector&lt;Foo&gt;</code>、<code>map&lt;string, int&gt;</code> 逻辑完全相同，只是元素类型不同。手写就是抄 N 份，<code>void*</code> 实现则牺牲类型安全。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p>和函数模板一样，编译器为每种“模板参数组合”生成一份独立类。<code>vector&lt;int&gt;</code> 和 <code>vector&lt;Foo&gt;</code> 是<strong>两个完全不同的类型</strong>，彼此不兼容。</p>
+
+  <h3>怎么用</h3>
+  <div class="pre-wrap"><span class="tag">这四类容器你读现代代码必遇到</span>
+<pre><code>std::vector&lt;<span class="k">int</span>&gt;         v;     <span class="c">// 动态数组，连续内存，尾插 O(1)</span>
+std::map&lt;<span class="k">int</span>, <span class="k">int</span>&gt;       m;     <span class="c">// 红黑树，按 key 有序，O(log n)</span>
+std::unordered_map&lt;K,V&gt; um;    <span class="c">// 哈希表，平均 O(1)</span>
+std::deque&lt;T&gt;          dq;    <span class="c">// 双端队列，头尾都能插</span></code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <p>C 里没有一个通用方案能同时做到“类型安全 + 通用”。通常是<strong>给每种类型手写一份容器</strong>，或用 <code>void*</code> 加 <code>sizeof</code> 偏移自己维护。</p>
+  <div class="pre-wrap"><span class="tag">C 手写一个能用的 vector</span>
+<pre><code><span class="k">typedef struct</span> {
+    <span class="k">void</span>*  data;     <span class="c">// 裸内存块</span>
+    size_t  elem_size;<span class="c">// 元素大小，必须自己记</span>
+    size_t  len;
+    size_t  cap;
+} Vec;
+
+<span class="k">void</span> <span class="tok-fn">vec_init</span>(Vec* v, size_t elem_size) {
+    v-&gt;data = <span class="n">NULL</span>; v-&gt;elem_size = elem_size;
+    v-&gt;len = v-&gt;cap = <span class="n">0</span>;
+}
+<span class="k">void</span>* <span class="tok-fn">vec_at</span>(Vec* v, size_t i) {
+    <span class="k">return</span> (<span class="k">char</span>*)v-&gt;data + i * v-&gt;elem_size;  <span class="c">// 自己算偏移</span>
+}
+<span class="k">void</span> <span class="tok-fn">vec_push</span>(Vec* v, <span class="k">const void</span>* elem) {
+    <span class="k">if</span> (v-&gt;len == v-&gt;cap) {
+        v-&gt;cap = v-&gt;cap ? v-&gt;cap * <span class="n">2</span> : <span class="n">4</span>;
+        v-&gt;data = <span class="tok-fn">realloc</span>(v-&gt;data, v-&gt;cap * v-&gt;elem_size);
+    }
+    <span class="tok-fn">memcpy</span>((<span class="k">char</span>*)v-&gt;data + v-&gt;len * v-&gt;elem_size, elem, v-&gt;elem_size);
+    v-&gt;len++;
+}
+<span class="k">void</span> <span class="tok-fn">vec_free</span>(Vec* v) { <span class="tok-fn">free</span>(v-&gt;data); }</code></pre>
+  </div>
+  <div class="card warn">
+    <div class="lab">C 实现的三个硬伤</div>
+    <ul>
+      <li><code>vec_at(v, i)</code> 返回 <code>void*</code>，<strong>编译器不帮你检查类型</strong>，传错类型静默通过；</li>
+      <li>扩容逻辑、<code>elem_size</code> 记账、<code>free</code> 全靠自己，忘了就崩；</li>
+      <li>没法给元素自动调用构造/析构，存 <code>string</code> 这类带资源的类型会出事。</li>
+    </ul>
+    <p>这就是你当年用 Qt 时 <code>QList</code>、<code>QVector</code> 的价值所在——现代 C++ 直接把这套做进了标准库。</p>
+  </div>
+
+  <h3>心法口诀</h3>
+  <table>
+    <tr><th>看到</th><th>心里翻译成</th></tr>
+    <tr><td>vector&lt;T&gt;</td><td>“会自己扩容的数组”</td></tr>
+    <tr><td>map&lt;K,V&gt;</td><td>“按键排序的字典，插入查找 O(log n)”</td></tr>
+    <tr><td>unordered_map&lt;K,V&gt;</td><td>“哈希表字典，平均 O(1)”</td></tr>
+    <tr><td>v.push_back(x)</td><td>“尾插，可能触发扩容”</td></tr>
+  </table>
+
+  <!-- ================= 变参模板 ================= -->
+  <h2 id="variadic" class="anchor">特性功能：变参模板与折叠表达式（C++11/17）</h2>
+
+  <h3>产生背景</h3>
+  <p>C 有 <code>va_list</code>，但它在运行时只拿到一堆字节，<strong>完全丢失类型信息</strong>——参数个数、类型全靠赌命，<code>printf</code> 的 <code>%d</code> 对不上 <code>int</code> 就未定义行为。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p>变参模板在<strong>编译期</strong>就把参数包展开，每个实参的类型都精确可知，展开成真正的类型安全调用。C++17 的<strong>折叠表达式</strong>更进一步，把“对包里每个元素做同一件事”压缩成一行。</p>
+  <div class="pre-wrap"><span class="tag">类型安全的 printf 与折叠表达式</span>
+<pre><code><span class="c">// C++11：递归展开（经典写法）</span>
+<span class="k">void</span> <span class="tok-fn">print</span>() {}
+<span class="k">template</span>&lt;<span class="k">typename</span> T, <span class="k">typename</span>... Args&gt;
+<span class="k">void</span> <span class="tok-fn">print</span>(T first, Args... rest) {
+    std::cout &lt;&lt; first &lt;&lt; <span class="s">" "</span>;
+    <span class="tok-fn">print</span>(rest...);
+}
+
+<span class="c">// C++17：折叠表达式，一行搞定</span>
+<span class="k">template</span>&lt;<span class="k">typename</span>... Args&gt;
+<span class="k">void</span> <span class="tok-fn">print_all</span>(Args... args) {
+    (std::cout &lt;&lt; ... &lt;&lt; args) &lt;&lt; <span class="s">"\n"</span>;   <span class="c">// 折叠：对每个 args 都做 &lt;&lt;</span>
+}</code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 只能靠 va_list + 格式串赌命</span>
+<pre><code><span class="pp">#include</span> <span class="s">&lt;stdarg.h&gt;</span>
+<span class="k">void</span> <span class="tok-fn">print</span>(<span class="k">const char</span>* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    <span class="c">/* 按 fmt 逐字符解析，类型完全靠程序员保证 */</span>
+    va_end(ap);
+}</code></pre>
+  </div>
+  <div class="card">
+    <div class="lab">心法</div>
+    <p>看到 <code>typename... Args</code> 或 <code>Args... args</code>，心里就当它是<strong>“参数个数不定的、每个都有明确类型的一组参数”</strong>——C 的 <code>va_list</code> 是它的不安全前身。</p>
+  </div>
+
+  <!-- ================= decltype ================= -->
+  <h2 id="decltype" class="anchor">特性功能：decltype 与 declval</h2>
+
+  <h3>产生背景</h3>
+  <p>你有一个表达式，想知道它是什么类型，但<strong>这个类型名字写不出来</strong>（比如“某个函数调用的返回类型”）。模板里尤其常见。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p><code>decltype(expr)</code> 让编译器<strong>求表达式的类型</strong>（不求值，编译期）。<code>std::declval&lt;T&gt;()</code> 能在不构造对象的前提下“假装”出一个 T 类型右值，用来喂给 <code>decltype</code>。</p>
+  <div class="pre-wrap"><span class="tag">用法</span>
+<pre><code><span class="k">int</span> x = <span class="n">10</span>;
+<span class="k">decltype</span>(x)     y = <span class="n">20</span>;   <span class="c">// int</span>
+<span class="k">decltype</span>(&amp;x)    p = &amp;x;   <span class="c">// int*</span>
+
+<span class="c">// 典型场景：让返回类型跟着参数类型走</span>
+<span class="k">template</span>&lt;<span class="k">typename</span> A, <span class="k">typename</span> B&gt;
+<span class="k">auto</span> <span class="tok-fn">mul</span>(A a, B b) -&gt; <span class="k">decltype</span>(a * b) {
+    <span class="k">return</span> a * b;
+}</code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <p>C 里<strong>无法表达“表达式的类型”</strong>，只能手动写死返回类型，或用 <code>_Generic</code> 做有限的类型分发。这也是 C 没法实现真正泛型的原因之一。</p>
+  <div class="card">
+    <div class="lab">心法</div>
+    <p><code>decltype</code> = <strong>“问编译器：这个表达式是什么类型？”</strong>。日常读代码遇到，当作“编译器帮我推导了一个我写不出的复杂类型”即可。</p>
+  </div>
+
+  <!-- ================= Concepts ================= -->
+  <h2 id="concepts" class="anchor">特性功能：Concepts（C++20）</h2>
+
+  <h3>产生背景</h3>
+  <p>模板报错是出名的“一万行编译错误”——因为约束发生在<strong>模板内部</strong>，调用方传错类型时，错误要到很深的地方才暴露。Concepts 把约束<strong>提前到模板入口</strong>。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p>编译期谓词：检查某个类型是否满足一组要求（有某个成员函数、支持某个运算符等）。不满足时，<strong>在模板声明处给出可读错误</strong>，而不是在实例化深处崩溃。</p>
+  <div class="pre-wrap"><span class="tag">对比</span>
+<pre><code><span class="c">// C++20：约束清晰、报错可读</span>
+<span class="k">template</span>&lt;<span class="k">typename</span> T&gt;
+<span class="k">concept</span> Integral = std::is_integral_v&lt;T&gt;;
+
+<span class="k">template</span>&lt;Integral T&gt;
+T <span class="tok-fn">add</span>(T a, T b) { <span class="k">return</span> a + b; }
+
+<span class="c">// 之前：SFINAE / enable_if，极其难读</span>
+<span class="k">template</span>&lt;<span class="k">typename</span> T,
+         <span class="k">typename</span> = std::enable_if_t&lt;std::is_integral_v&lt;T&gt;&gt;&gt;
+T <span class="tok-fn">add</span>(T a, T b);</code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <p>C 没有等价物。想限制宏或 <code>_Generic</code> 的可用类型，只能靠文档说明 + 静态断言。</p>
+  <div class="card">
+    <div class="lab">心法</div>
+    <p><code>template&lt;Concept T&gt;</code> = <strong>“这个模板只接受满足某条件的类型”</strong>。读到它，当作更严格、更好报错的模板即可，不必深究 Concept 定义细节。</p>
+  </div>
+
+  <!-- ================= string ================= -->
+  <h2 id="string" class="anchor">特性功能：std::string</h2>
+
+  <h3>产生背景</h3>
+  <p>C 的 <code>char*</code> 是以 <code>\0</code> 结尾的裸数组，字符串操作全靠 <code>strcpy/strcat/sprintf</code>——<strong>天天担心缓冲区溢出</strong>，拼接还要手动 <code>malloc/realloc</code>。这是 C 最危险的部分。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p><code>std::string</code> 内部管理一块动态内存，自动扩容、自动 <code>\0</code> 结尾、析构自动释放。配合移动语义，传参和返回都很便宜。</p>
+  <div class="pre-wrap"><span class="tag">C++ 的日常</span>
+<pre><code>std::string s = <span class="s">"hello"</span>;
+s += <span class="s">" world"</span>;                  <span class="c">// 自动扩容</span>
+std::string sub = s.<span class="tok-fn">substr</span>(<span class="n">0</span>, <span class="n">5</span>);
+<span class="k">if</span> (s == <span class="s">"hello world"</span>) ...       <span class="c">// 运算符重载，直接比较内容</span>
+<span class="k">const char</span>* cstr = s.<span class="tok-fn">c_str</span>();     <span class="c">// 和 C API 交互时再取裸指针</span></code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 的手工拼接（危险）</span>
+<pre><code><span class="k">char</span> buf[<span class="n">256</span>];
+<span class="tok-fn">strcpy</span>(buf, <span class="s">"hello"</span>);
+<span class="tok-fn">strcat</span>(buf, <span class="s">" world"</span>);   <span class="c">// 超 256 字节就缓冲区溢出</span>
+
+<span class="c">/* 动态版本要自己管理内存 */</span>
+<span class="k">char</span>* s = <span class="tok-fn">malloc</span>(<span class="n">6</span>);
+<span class="tok-fn">strcpy</span>(s, <span class="s">"hello"</span>);
+<span class="k">char</span>* t = <span class="tok-fn">realloc</span>(s, <span class="n">12</span>);
+<span class="tok-fn">strcat</span>(t, <span class="s">" world"</span>);
+<span class="tok-fn">free</span>(t);</code></pre>
+  </div>
+  <div class="card ok">
+    <div class="lab">心法</div>
+    <p><code>std::string</code> = <strong>“会自己管内存的字符串”</strong>。只有和 C API 交互（如 USB/串口驱动、系统调用）时才取 <code>.c_str()</code> 转回 <code>const char*</code>。</p>
+  </div>
+
+  <!-- ================= 算法 + Lambda ================= -->
+  <h2 id="algorithm" class="anchor">特性功能：算法 + Lambda</h2>
+
+  <h3>产生背景</h3>
+  <p>C 的 <code>qsort</code>/<code>bsearch</code> 要手写比较函数，<code>void*</code> 无类型安全，而且<strong>无法携带状态</strong>。想“按某个动态阈值过滤”，只能靠全局变量——这在你当年写 Qt 回调时应该深有体会。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p><strong>Lambda = 一个匿名函数 + 一个编译器自动生成的结构体（捕获列表就是结构体的成员）</strong>。它替代了 C 里“函数指针 + void* context”的丑陋组合。无捕获的 lambda 还能<strong>隐式转换成函数指针</strong>。</p>
+  <div class="pre-wrap"><span class="tag">Lambda 的本质展开</span>
+<pre><code><span class="c">// 你写的 lambda</span>
+<span class="k">int</span> threshold = <span class="n">10</span>;
+<span class="k">auto</span> pred = [threshold](<span class="k">int</span> x) { <span class="k">return</span> x &gt; threshold; };
+
+<span class="c">// 编译器等价的展开</span>
+<span class="k">struct</span> __Lambda1 {
+    <span class="k">int</span> threshold;
+    <span class="k">bool</span> <span class="tok-fn">operator</span>()(<span class="k">int</span> x) <span class="k">const</span> { <span class="k">return</span> x &gt; threshold; }
+} pred = { threshold };</code></pre>
+  </div>
+
+  <h3>怎么用</h3>
+  <div class="pre-wrap"><span class="tag">标准算法 + Lambda 的组合</span>
+<pre><code><span class="k">auto</span> it = std::<span class="tok-fn">find_if</span>(v.begin(), v.end(),
+                    [](<span class="k">int</span> x) { <span class="k">return</span> x &gt; <span class="n">10</span>; });
+
+<span class="k">int</span> sum = std::<span class="tok-fn">accumulate</span>(v.begin(), v.end(), <span class="n">0</span>);
+
+std::<span class="tok-fn">sort</span>(v.begin(), v.end(),
+     [](<span class="k">int</span> a, <span class="k">int</span> b) { <span class="k">return</span> a &gt; b; });    <span class="c">// 降序</span></code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 的“函数指针 + void* ctx”</span>
+<pre><code><span class="k">struct</span> PredCtx { <span class="k">int</span> threshold; };
+
+<span class="k">int</span> <span class="tok-fn">pred_gt</span>(<span class="k">void</span>* ctx, <span class="k">int</span> x) {
+    <span class="k">return</span> x &gt; ((<span class="k">struct</span> PredCtx*)ctx)-&gt;threshold;
+}
+
+<span class="c">/* 任何想接受谓词的 C API 都得带 void* context 参数 */</span>
+<span class="k">void</span>* <span class="tok-fn">find_if</span>(<span class="k">int</span>* begin, <span class="k">int</span>* end,
+                  <span class="k">int</span>(*pred)(<span class="k">void</span>*, <span class="k">int</span>), <span class="k">void</span>* ctx);</code></pre>
+  </div>
+  <p>Qt 的信号槽、GLib 的 <code>g_signal_connect</code> 全是这套模式——这正是 Lambda 要解决的问题。</p>
+
+  <h3>捕获方式口诀</h3>
+  <table>
+    <tr><th>捕获</th><th>含义</th></tr>
+    <tr><td>[]</td><td>不捕获任何外部变量</td></tr>
+    <tr><td>[x]</td><td>按值捕获 x（拷贝一份）</td></tr>
+    <tr><td>[&amp;x]</td><td>按引用捕获 x（能改外部）</td></tr>
+    <tr><td>[=]</td><td>按值捕获所有用到的变量</td></tr>
+    <tr><td>[&amp;]</td><td>按引用捕获所有用到的变量（小心悬空引用）</td></tr>
+    <tr><td>[this]</td><td>捕获当前对象指针（Qt 槽函数常见）</td></tr>
+  </table>
+  <div class="card">
+    <div class="lab">一句话总结</div>
+    <p>Lambda = <strong>带状态的函数对象</strong>。读代码时把它当成“一个就地定义的小函数”即可，捕获列表就是它携带的变量。</p>
+  </div>
+
+  <!-- ================= 多态 ================= -->
+  <h2 id="polymorphism" class="anchor">特性功能：虚函数与运行时多态</h2>
+
+  <h3>产生背景</h3>
+  <p>你当年写 Qt，<code>QWidget</code>、<code>QPushButton</code> 这种“基类指针指向派生类对象，调用同名函数走实际类型”的机制，就是虚函数多态。C 没有虚函数，只能手写。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p>每个有虚函数的类，编译器会给它加一张<strong>虚函数表（vtable）</strong>：一个函数指针数组；对象内部藏一个 <code>vptr</code> 指向这张表。调用虚函数 = 通过 <code>vptr</code> 查表跳转到实际函数。这是 C 手写虚函数的<strong>真身</strong>。</p>
+  <div class="pre-wrap"><span class="tag">C++ 写法</span>
+<pre><code><span class="k">struct</span> Shape {
+    <span class="k">virtual</span> ~Shape() = <span class="k">default</span>;
+    <span class="k">virtual</span> <span class="k">void</span> <span class="tok-fn">draw</span>() <span class="k">const</span> = <span class="n">0</span>;   <span class="c">// 纯虚：子类必须实现</span>
+};
+<span class="k">struct</span> Circle : Shape {
+    <span class="k">void</span> <span class="tok-fn">draw</span>() <span class="k">const</span> <span class="k">override</span> { ... }
+};
+
+Shape* s = <span class="k">new</span> Circle;
+s-&gt;<span class="tok-fn">draw</span>();      <span class="c">// 运行时查 vtable，调到 Circle::draw</span></code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 手写 vtable</span>
+<pre><code><span class="k">struct</span> Shape;
+<span class="k">struct</span> ShapeVtbl {
+    <span class="k">void</span> (*draw)(<span class="k">const struct</span> Shape*);
+    <span class="k">void</span> (*destroy)(<span class="k">struct</span> Shape*);
+};
+<span class="k">struct</span> Shape {
+    <span class="k">const struct</span> ShapeVtbl* vtbl;   <span class="c">// 虚表指针</span>
+};
+
+<span class="k">void</span> <span class="tok-fn">shape_draw</span>(<span class="k">const struct</span> Shape* s) { s-&gt;vtbl-&gt;draw(s); }
+
+<span class="c">/* Circle 实现：填充自己的 vtbl */</span>
+<span class="k">struct</span> Circle { <span class="k">struct</span> Shape base; <span class="k">int</span> r; };
+<span class="k">void</span> <span class="tok-fn">circle_draw</span>(<span class="k">const struct</span> Shape* s) { ... }
+<span class="k">const struct</span> ShapeVtbl Circle_vtbl = { circle_draw, circle_destroy };</code></pre>
+  </div>
+  <p>这正是 GObject、COM、Linux 内核的 <code>struct file_operations</code>、以及 C++ 编译器内部的实现方式。</p>
+
+  <div class="card">
+    <div class="lab">心法</div>
+    <p>虚函数 = <strong>编译器替你维护的函数指针表</strong>。看到 <code>virtual</code>，就知道“这个调用在运行时才决定走哪个实现”。</p>
+  </div>
+
+  <!-- ================= override / final ================= -->
+  <h2 id="override" class="anchor">特性功能：override 与 final（C++11）</h2>
+
+  <h3>产生背景</h3>
+  <p>C++98 里重写虚函数只要签名“差不多”就行。拼错函数名、参数类型写错、<code>const</code> 漏了——<strong>编译器一律不报错，默默给你一个新函数</strong>，运行时多态就失效了。这是 C++ 著名的坑。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p>纯编译期检查。<code>override</code> 告诉编译器“我意图重写父类虚函数，请帮我验证”；<code>final</code> 表示“禁止子类再重写”。</p>
+  <div class="pre-wrap"><span class="tag">对比</span>
+<pre><code><span class="k">struct</span> Base {
+    <span class="k">virtual void</span> <span class="tok-fn">draw</span>(<span class="k">int</span> x) <span class="k">const</span>;
+    <span class="k">virtual void</span> <span class="tok-fn">name</span>();
+};
+<span class="k">struct</span> Deriv : Base {
+    <span class="k">void</span> <span class="tok-fn">draw</span>(<span class="k">int</span> x) <span class="k">const override</span>;   <span class="c">// ✅ 编译器验证匹配</span>
+    <span class="k">void</span> <span class="tok-fn">nane</span>()  override;            <span class="c">// ❌ 拼错，编译报错</span>
+    <span class="k">void</span> <span class="tok-fn">draw</span>(<span class="k">int</span> x) <span class="k">final</span>;              <span class="c">// 子类不能再重写</span>
+};</code></pre>
+  </div>
+  <div class="card ok">
+    <div class="lab">规则</div>
+    <p><strong>任何重写虚函数的地方都写 <code>override</code></strong>。它不增加任何开销，纯粹是给你和编译器的一份保险单。</p>
+  </div>
+
+  <!-- ================= 统一初始化 ================= -->
+  <h2 id="braced-init" class="anchor">特性功能：统一初始化 {}（C++11）</h2>
+
+  <h3>产生背景</h3>
+  <p>C++98 里初始化五花八门：数组用 <code>{}</code>、结构体用 <code>{}</code>、对象用 <code>()</code>、聚合又要另一种。而且 <code>T()</code> 和 <code>T(1)</code> 在某些场景有诡异歧义。<code>{}</code> 统一了这一切。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p><code>{}</code> 初始化走<strong>初始化列表</strong>机制，编译期检查“能否用这组值构造对象”。它还有一个附带好处：<strong>禁止窄化转换</strong>（如 <code>double → int</code> 会报错）。</p>
+  <div class="pre-wrap"><span class="tag">对比</span>
+<pre><code><span class="c">// C++11 起：统一用 {}</span>
+std::vector&lt;<span class="k">int</span>&gt; v = {<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>};       <span class="c">// 列表初始化容器</span>
+<span class="k">int</span> a[<span class="n">3</span>] = {<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>};
+std::pair&lt;<span class="k">int</span>, <span class="k">int</span>&gt; p = {<span class="n">1</span>, <span class="n">2</span>};
+<span class="k">int</span>  x{<span class="n">42</span>};
+<span class="k">double</span> d = <span class="n">3.14</span>;
+<span class="k">int</span>  y{d};     <span class="c">// ❌ 编译错误：窄化转换被禁止</span></code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 的指定初始化器（C99）</span>
+<pre><code><span class="k">int</span>  a[] = {<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>};
+<span class="k">struct</span> Point p = { .x = <span class="n">1</span>, .y = <span class="n">2</span> };   <span class="c">// 指定成员名，可读性更好</span></code></pre>
+  </div>
+  <div class="card">
+    <div class="lab">心法</div>
+    <p>现代 C++ 里<strong>默认用 <code>{}</code> 初始化</strong>，既统一又安全。只有“明确要调用某个构造函数”或某些需要缩窄的特殊场景才用 <code>()</code>。</p>
+  </div>
+
+  <!-- ================= constexpr ================= -->
+  <h2 id="constexpr" class="anchor">特性功能：constexpr 编译期计算</h2>
+
+  <h3>产生背景</h3>
+  <p>C 用宏和枚举表达“编译期常量”，但宏<strong>无类型检查、易重复求值、作用域混乱</strong>。<code>constexpr</code> 把“能在编译期算出来的东西”变成语言的一等公民。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p>编译器在编译期对 <code>constexpr</code> 函数/变量求值，结果直接嵌入二进制，<strong>运行期零开销</strong>。C++14 起 constexpr 函数可以包含多条语句、局部变量、循环。</p>
+  <div class="pre-wrap"><span class="tag">对比</span>
+<pre><code><span class="c">// C++ constexpr：有类型、可调试</span>
+<span class="k">constexpr int</span> <span class="tok-fn">sq</span>(<span class="k">int</span> x) { <span class="k">return</span> x * x; }
+<span class="k">constexpr int</span> val = <span class="tok-fn">sq</span>(<span class="n">5</span>);      <span class="c">// 编译期算出 25，嵌入二进制</span>
+
+<span class="c">// C 宏：无类型、重复求值</span>
+<span class="pp">#define</span> <span class="tok-fn">SQ</span>(x) ((x) * (x))
+<span class="k">int</span> a[<span class="tok-fn">SQ</span>(<span class="n">5</span>)];    <span class="c">// 能用，但 SQ(++i) 会坑你</span></code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 的替代方案</span>
+<pre><code><span class="k">enum</span> { SQ5 = <span class="n">25</span> };            <span class="c">// 编译期常量，但语义别扭</span>
+<span class="k">static const int</span> sq5 = <span class="n">25</span>;   <span class="c">// 常量，但不是“编译期函数”</span>
+
+<span class="c">/* C23 起才有 constexpr，老代码无等价物 */</span></code></pre>
+  </div>
+  <div class="card">
+    <div class="lab">心法</div>
+    <p><code>constexpr</code> = <strong>“告诉编译器：这个值/函数的结果可以在编译期确定，请直接算好”</strong>。读代码看到它，知道“这是个编译期常量/计算”，性能无忧即可。</p>
+  </div>
+
+  <!-- ================= optional ================= -->
+  <h2 id="optional" class="anchor">特性功能：std::optional（C++17）</h2>
+
+  <h3>产生背景</h3>
+  <p>C 的函数想表达“可能没有值”，要么返回哨兵值（<code>-1</code>、<code>NULL</code>），要么用出参 <code>int* out_err</code>，要么返回结构体 <code>{bool ok; T val;}</code>——三种都啰嗦且不统一。更糟的是哨兵值可能和有效值冲突。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p><code>std::optional&lt;T&gt;</code> 内部是一个 <code>bool</code>（是否有值）+ 一块足够放 <code>T</code> 的内存（用 <code>union</code>/<code>aligned_storage</code> 避免不必要的构造）。开销很小，零堆分配。</p>
+  <div class="pre-wrap"><span class="tag">用法</span>
+<pre><code>std::optional&lt;<span class="k">int</span>&gt; <span class="tok-fn">find_id</span>(<span class="k">const</span> std::string&amp; name) {
+    <span class="k">if</span> (exists(name)) <span class="k">return</span> <span class="n">42</span>;
+    <span class="k">return</span> std::nullopt;     <span class="c">// 明确表达“没有值”</span>
+}
+
+<span class="k">auto</span> id = <span class="tok-fn">find_id</span>(<span class="s">"alice"</span>);
+<span class="k">if</span> (id) {
+    <span class="tok-fn">use</span>(*id);              <span class="c">// 解引用取值</span>
+    <span class="tok-fn">use</span>(id.value_or(<span class="n">0</span>));     <span class="c">// 没有就给默认值</span>
+}</code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 的三种土办法</span>
+<pre><code><span class="c">/* 1. 哨兵值（可能冲突） */</span>
+<span class="k">int</span>  <span class="tok-fn">find_id</span>(<span class="k">const char</span>* name);
+
+<span class="c">/* 2. 出参 */</span>
+<span class="k">bool</span> <span class="tok-fn">find_id</span>(<span class="k">const char</span>* name, <span class="k">int</span>* out);
+
+<span class="c">/* 3. 返回“带标记的结构体”（最接近 optional） */</span>
+<span class="k">typedef struct</span> { <span class="k">bool</span> ok; <span class="k">int</span> val; } OptionalInt;
+OptionalInt <span class="tok-fn">find_id</span>(<span class="k">const char</span>* name);</code></pre>
+  </div>
+  <div class="card">
+    <div class="lab">心法</div>
+    <p><code>optional&lt;T&gt;</code> = <strong>“返回值可能存在，也可能不存在”</strong>。比哨兵值安全、比出参干净，是现代 C++ 里表达“可空”的首选（而不是返回指针）。</p>
+  </div>
+
+  <!-- ================= variant ================= -->
+  <h2 id="variant" class="anchor">特性功能：std::variant / std::any（C++17）</h2>
+
+  <h3>产生背景</h3>
+  <p>C 的 <code>union</code> 只能存 Plain Old Data，且<strong>不知道自己现在存的是哪个类型</strong>——得另配一个 tag 枚举，手动记、手动判，忘判就是未定义行为。<code>variant</code> 把这套“tagged union”做成了类型安全的库类型。</p>
+
+  <h3>C++ 怎么实现</h3>
+  <p><code>variant&lt;A, B, C&gt;</code> 内部是一块能容纳最大类型的存储 + 一个索引（现在装的是第几个类型），访问时通过 <code>std::get</code> 或 <code>std::visit</code> <strong>编译期保证类型正确</strong>。</p>
+  <div class="pre-wrap"><span class="tag">用法</span>
+<pre><code>std::variant&lt;<span class="k">int</span>, std::string&gt; v = <span class="n">10</span>;
+v = <span class="s">"hello"</span>;                        <span class="c">// 现在装 string</span>
+
+<span class="k">if</span> (<span class="k">auto</span> p = std::get_if&lt;<span class="k">int</span>&gt;(&amp;v)) {
+    <span class="tok-fn">use_int</span>(*p);
+} <span class="k">else if</span> (<span class="k">auto</span> s = std::get_if&lt;std::string&gt;(&amp;v)) {
+    <span class="tok-fn">use_str</span>(*s);
+}</code></pre>
+  </div>
+
+  <h3>C 模拟实现</h3>
+  <div class="pre-wrap"><span class="tag">C 的 tagged union</span>
+<pre><code><span class="k">enum</span> ValKind { VAL_INT, VAL_STR };
+<span class="k">typedef struct</span> {
+    <span class="k">enum</span> ValKind tag;      <span class="c">// 手动记“现在是哪个类型”</span>
+    <span class="k">union</span> {
+        <span class="k">int</span>         i;
+        <span class="k">char</span>*       s;
+    } u;
+} Val;
+
+<span class="k">void</span> <span class="tok-fn">val_print</span>(<span class="k">const</span> Val* v) {
+    <span class="k">switch</span> (v-&gt;tag) {        <span class="c">// 忘了更新 tag 就出事</span>
+        <span class="k">case</span> VAL_INT: printf(<span class="s">"%d\n"</span>, v-&gt;u.i); <span class="k">break</span>;
+        <span class="k">case</span> VAL_STR: printf(<span class="s">"%s\n"</span>, v-&gt;u.s); <span class="k">break</span>;
+    }
+}</code></pre>
+  </div>
+  <div class="card">
+    <div class="lab">心法</div>
+    <p><code>variant</code> = <strong>“带身份证的 union”</strong>；<code>any</code> = <strong>“能装任何类型，但代价是类型擦除 + 堆分配”</strong>。需要表达“多种类型之一”时，优先 <code>variant</code>。</p>
+  </div>
+
+  <!-- ================= 学习路径 ================= -->
+  <h2 id="path" class="anchor">破冰学习路径</h2>
+  <p>考虑到你有 Qt 底子、且多年未碰，建议按这个顺序“破冰”。<strong>每个阶段都是先看 C++ 写法，再回头看 C 模拟</strong>——你会发现毫无新概念，只是把记账活交给了编译器。</p>
+
+  <table>
+    <tr><th>阶段</th><th>内容</th><th>为什么这个顺序</th></tr>
+    <tr><td>1</td><td><code>auto</code> + 范围 for + 统一初始化 <code>{}</code></td><td>当天就能上手读代码，纯语法糖</td></tr>
+    <tr><td>2</td><td><code>vector</code> / <code>string</code> / <code>map</code></td><td>替代你当年手写的 90% 数据结构和字符串代码</td></tr>
+    <tr><td>3</td><td>Lambda + 标准算法（sort / find_if）</td><td>看懂 Qt6 / 现代回调的关键</td></tr>
+    <tr><td>4</td><td>智能指针 + 移动语义</td><td>理解现代 C++ 的内存哲学</td></tr>
+    <tr><td>5</td><td>模板基础（函数模板 + 类模板）</td><td>能读 STL 源码和别人代码即可，不必会写</td></tr>
+    <tr><td>6</td><td>Concepts / 变参模板 / 折叠表达式</td><td>遇到再查，不用预先学</td></tr>
+  </table>
+
+  <div class="card ok">
+    <div class="lab">给 Qt 老手的特别提醒</div>
+    <ul>
+      <li>Qt 6 已经全面拥抱 C++17，信号槽新语法、<code>QString</code> 与 <code>std::string</code> 混用是常态；</li>
+      <li>Qt 的 <code>QObject</code> 父子所有权树，和 <code>unique_ptr/shared_ptr</code> 的所有权语义是<strong>两套体系</strong>——在 Qt 对象树上别混用智能指针去管父子关系；</li>
+      <li>当年让你头疼的“指针到底归谁管”，现在语言层面给了答案：<strong>先问所有权，再决定用什么指针</strong>。</li>
+    </ul>
+  </div>
+
+  <footer>
+    现代 C++ 特性详解 · 用 C 语言视角重新理解每一个“高级特性”<br>
+    结构：特性功能 → 产生背景 → C++ 怎么实现 → 怎么用 → C 模拟实现 → 心法口诀
+  </footer>
+</main>
+</div>
+
+<script>
+// 侧边栏：当前章节高亮
+const links = Array.from(document.querySelectorAll('#sidebar a'));
+const sections = links
+  .map(a => document.querySelector(a.getAttribute('href')))
+  .filter(Boolean);
+
+function onScroll() {
+  let cur = -1;
+  for (let i = 0; i < sections.length; i++) {
+    if (sections[i].getBoundingClientRect().top <= 120) cur = i;
+  }
+  links.forEach(l => l.classList.remove('active'));
+  if (cur >= 0) links[cur].classList.add('active');
+}
+window.addEventListener('scroll', onScroll, { passive: true });
+onScroll();
+
+// 移动端菜单
+const sb = document.getElementById('sidebar');
+document.getElementById('menuBtn').addEventListener('click', () => {
+  sb.classList.toggle('open');
+});
+links.forEach(a => a.addEventListener('click', () => {
+  if (window.innerWidth <= 900) sb.classList.remove('open');
+}));
+</script>
+</body>
+</html>
